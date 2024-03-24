@@ -1,10 +1,11 @@
 import { Flex } from "@chakra-ui/react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ThreeDotsLoader from "./DotsLoader";
 import { colors } from "../theme";
 import { AnimatePresence } from "framer-motion";
 import Chat from "./Chat";
 import InputField from "./InputField";
+import MistralClient from "@mistralai/mistralai";
 
 type Chat = {
   user: "me" | "agent";
@@ -12,13 +13,20 @@ type Chat = {
   originalIndex: number;
 };
 
-const ChatUI = () => {
+const apiKey = "TWfVrlX659GSTS9hcsgUcPZ8uNzfoQsg"; // Ensure you have MISTRAL_API_KEY in your .env file
+const client = new MistralClient(apiKey);
+
+const PROMPT_TO_APPEND = ``;
+
+const ChatUI = ({ initialMessage }) => {
   const [chats, setChats] = useState<Chat[]>([]);
   const [value, setValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [initialMessageSent, setInitialMessageSent] = useState(false);
+  const sentMessageRef = useRef(false);
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.MouseEvent<HTMLElement>) => {
+    e?.preventDefault();
 
     try {
       setIsSubmitting(true);
@@ -27,31 +35,33 @@ const ChatUI = () => {
         { user: "me", message: value, originalIndex: prev.length },
         ...prev,
       ]);
+      // Prepare the conversation history for the Mistral chat API
+      const conversationHistory = chats
+        .map((chat) => ({
+          role: chat.user === "me" ? "user" : "assistant", // Adjust if needed based on your API's expected roles
+          content: chat.message,
+        }))
+        .reverse(); // Reverse to maintain the order of messages as they were sent
 
-      //   const response = await fetch("/api/generate", {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({
-      //       message: [{ user: "me", message: value }, ...chats]
-      //         .reverse()
-      //         .map((d) => d.message)
-      //         .join(""),
-      //     }),
-      //   });
+      // Include the new message by the user at the end of the conversation history
+      conversationHistory.push({ role: "user", content: value });
 
-      //   const data = await response.json();
-      //   if (response.status !== 200) {
-      //     throw (
-      //       data.error ||
-      //       new Error(`Request failed with status ${response.status}`)
-      //     );
-      //   }
-      setChats((prev) => [
-        { user: "agent", message: "test", originalIndex: prev.length },
-        ...prev,
-      ]);
+      const chatResponse = await client.chat({
+        model: "mistral-large-latest",
+        messages: conversationHistory,
+      });
+      if (chatResponse && chatResponse.choices.length > 0) {
+        // Update the chat with the response from the Mistral chat API
+        setChats((prev) => [
+          {
+            user: "agent",
+            message: chatResponse.choices[0].message.content,
+            originalIndex: prev.length,
+          },
+          ...prev,
+        ]);
+      }
+      setValue(""); // Clear the input after sending
     } catch (error) {
       console.log(error);
     } finally {
@@ -59,6 +69,22 @@ const ChatUI = () => {
     }
   };
 
+  useEffect(() => {
+    console.log("rendering twise");
+    // if (initialMessageSent) return;
+    // setInitialMessageSent(true);
+    if (sentMessageRef.current) return;
+    sentMessageRef.current = true;
+    const messageToSend = PROMPT_TO_APPEND + initialMessage;
+    setChats((prev) => [
+      { user: "me", message: messageToSend, originalIndex: prev.length },
+      ...prev,
+    ]);
+    setValue(messageToSend);
+    handleSubmit(null);
+  }, [initialMessage]);
+
+  console.log("chats", chats);
   return (
     <Flex bg="main-bg" h="90vh" color="main-color">
       <Flex
@@ -94,6 +120,9 @@ const ChatUI = () => {
           )}
           <AnimatePresence>
             {chats.map((chat, index) => {
+              if (chat.originalIndex === 0 && chat.user === "me") {
+                return null;
+              }
               return (
                 <Chat
                   key={chat.originalIndex}
