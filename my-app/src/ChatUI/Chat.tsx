@@ -37,7 +37,7 @@ const Chat = ({ message, user }: { message: string; user: "me" | "agent" }) => {
         gap="5px"
         w="full"
         flexDir={user === "agent" ? "row" : "row-reverse"}
-        textAlign={user === "agent" ? "start" : "end"}
+        textAlign={"start"}
         fontSize='medium'
       >
         <Avatar

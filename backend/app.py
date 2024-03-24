@@ -34,17 +34,17 @@ class AnalyzePerfScript(Resource):
         # Placeholder for file analysis logic
         # You can add your analysis code here
         # For demonstration, let's return a simple message
-        explaination_cards = [
-            {"title": "Analysis: Part 1/3", "content": "This is the content of the explaination card 1"},
-            {"title": "Analysis: Part 2/3", "content": "This is the content of the explaination card 2"},
-            {"title": "Analysis: Part 3/3", "content": "This is the content of the explaination card 3"},
-        ]
+        system_message = "You are an expert senior systems engineer, great at reading and analyzing flamegraphs and kernel system calls. \
+        You are trying to help a user understand the flamegraphs and kernel system calls. \
+        Help them walkthrough call stacks and hidden bottlenecks in the flamegraphs. \
+        deep_stacks and other are intentionally flattened to focus on significant call stacks. \
+        Make sure to include clean optimizations to solve bottlenecks at conclusion on explanation cards."
         
         perf_script_content = file.read().decode('utf-8')
 
-        gpt = GPTModelManager()
+        gpt = GPTModelManager(system_message=system_message)
         model = 'mistral-large-latest'
-        analysis_response = gpt.get_response("Find the most expensive function in the flame graph", AnalysisResponse, model)
+        analysis_response = gpt.get_response("Find the most expensive, hidden bottleneck functions in the flame graph", AnalysisResponse, model)
         top_consumers = analysis_response.construct_flame_graph(perf_script_content)
         # print(top_consumers)
         # top_consumers_str = ', '.join(top_consumers)

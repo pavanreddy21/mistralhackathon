@@ -58,7 +58,7 @@ const PreviewImage = forwardRef((props, ref) => {
       backgroundSize="cover"
       backgroundRepeat="no-repeat"
       backgroundPosition="center"
-      backgroundImage="/demo/toast3.jpeg"
+      backgroundImage="https://cdn.iconscout.com/icon/free/png-512/free-upload-30-83583.png?f=webp&w=512"
       {...props}
       ref={ref}
     />
@@ -141,12 +141,12 @@ const FileUpload = ({ handleFileUpload }) => {
                     justify="center"
                     spacing="4"
                   >
-                    <Box height="16" width="12" position="relative">
+                    {/* <Box height="16" width="12" position="relative">
                       <PreviewImage
                         variants={second}
                         backgroundImage="/demo/toast2.jpeg"
                       />
-                    </Box>
+                    </Box> */}
                     <Stack p="8" textAlign="center" spacing="1">
                       <Heading fontSize="lg" color="gray.700" fontWeight="bold">
                         Drop File here
