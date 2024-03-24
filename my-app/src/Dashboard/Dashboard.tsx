@@ -1,105 +1,68 @@
 import { useState } from "react";
-import { Box, Divider, Flex, Progress, useTheme } from "@chakra-ui/react";
-import StepperFlow from "../DescriptionFlow/DescriptionFlow";
+import { Box, Button, Divider, Flex, Progress, useTheme } from "@chakra-ui/react";
 import FileUpload from "../FileUpload/FileUpload";
-import ChatUI from "../ChatUI/ChatUI";
-import MOCK_RESPONSE from "./mockResponseFromBE";
 import CustomFlameGraph from "../Flamegraph/FlameGraph";
 
 function Dashboard() {
   const [responseFromBE, setResponseFromBE] = useState(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [isFileUploading, setFileUploading] = useState(false);
   const theme = useTheme();
 
-  const [isFileUploading, setFileUploading] = useState(false);
-
-  const [url, setUrl] = useState(null);
-
   const handleFileUpload = async (eventUpload) => {
-    const reader = new FileReader();
-    const API_URL = "http://localhost:5000/api";
-    reader.onload = async (eventLoad) => {
-      const response = await fetch("API_URL", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: [eventLoad.target.result],
-        }),
-      });
+    if (eventUpload.target.files.length === 0) {
+      return; // No file selected
+    }
 
-      const data = await response.json();
-      setResponseFromBE(data);
-      setFileUploading(false);
-    };
-    setUrl(eventUpload.target.files[0]);
-    reader.readAsDataURL(eventUpload.target.files[0]);
+    const file = eventUpload.target.files[0];
+    const API_URL = "http://localhost:5000/analyze";
+    const formData = new FormData();
+    formData.append('perf_script', file);
+
     setFileUploading(true);
 
-    //comment this once API is Integrated
-    setTimeout(() => {
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: formData, // Send formData directly without JSON.stringify
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      console.log(data);
+      setResponseFromBE(data.analysis); // Adjusted to set the analysis part of the response
+      setCurrentCardIndex(0); // Reset to the first explanation card
+    } catch (error) {
+      console.error('Error during file upload:', error);
+      // Handle the error state appropriately. For example, you might want to:
+      // - Show an error message to the user
+      // - Reset any relevant state
+    } finally {
       setFileUploading(false);
-      setResponseFromBE(MOCK_RESPONSE[0]);
-    }, 2000);
+    }
   };
 
   const handleNext = () => {
-    const reader = new FileReader();
-    reader.onload = async (eventLoad) => {
-      const response = await fetch("API_URL", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: [eventLoad.target.result],
-        }),
-      });
-
-      const data = await response.json();
-      setResponseFromBE(data);
-    };
-    reader.readAsDataURL(url);
-    setFileUploading(true);
-
-    //comment this once API is Integrated
-    setTimeout(() => {
-      setFileUploading(false);
-      setResponseFromBE(
-        MOCK_RESPONSE[(responseFromBE?.currentIndex + 1) % MOCK_RESPONSE.length]
-      );
-    }, 2000);
+    setCurrentCardIndex((prevIndex) => {
+      const nextIndex = prevIndex + 1;
+      return responseFromBE.explanation_cards && nextIndex < responseFromBE.explanation_cards.length ? nextIndex : prevIndex;
+    });
   };
 
   const handlePrev = () => {
-    const reader = new FileReader();
-    reader.onload = async (eventLoad) => {
-      const response = await fetch("API_URL", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: [eventLoad.target.result],
-        }),
-      });
-
-      const data = await response.json();
-      setResponseFromBE(data);
-    };
-    reader.readAsDataURL(url);
-    setFileUploading(true);
-
-    //comment this once API is Integrated
-    setTimeout(() => {
-      setFileUploading(false);
-      setResponseFromBE(
-        MOCK_RESPONSE[
-          responseFromBE?.currentIndex - 1 < 0
-            ? MOCK_RESPONSE.length - 1
-            : (responseFromBE?.currentIndex - 1) % MOCK_RESPONSE.length
-        ]
-      );
-    }, 2000);
+    setCurrentCardIndex((prevIndex) => {
+      const nextIndex = prevIndex - 1;
+      return nextIndex >= 0 ? nextIndex : prevIndex;
+    });
   };
 
   if (isFileUploading) {
     return <Progress size="xs" isIndeterminate />;
   }
+
   return (
     <Box p={5} bg={theme.colors.gray[50]} borderRadius="md" boxShadow="md">
       {!responseFromBE ? (
@@ -107,44 +70,19 @@ function Dashboard() {
           <FileUpload handleFileUpload={handleFileUpload} />
         </Box>
       ) : (
-        <Flex direction="row" height="100%">
-          <Box
-            w="50%"
-            h="100%"
-            p={4}
-            bg={theme.colors.white}
-            borderRadius="md"
-            boxShadow="sm"
-          >
-            <Flex direction="column" height="100%">
-              <Box w={"100%"}>
-                <StepperFlow
-                  title={responseFromBE?.title}
-                  description={responseFromBE?.description}
-                  isFirstStep={responseFromBE?.isFirstStep}
-                  isLastStep={responseFromBE?.isLastStep}
-                  handleNext={handleNext}
-                  handlePrev={handlePrev}
-                />
-              </Box>
-              <Divider orientation="horizontal" h={5} />
-              <Box flex="1" w={"100%"}>
-                <CustomFlameGraph graphData={responseFromBE?.graphJson} />
-              </Box>
-            </Flex>
-          </Box>
-          <Divider orientation="vertical" w={10} />
-
-          <Box
-            w="50%"
-            h="100%"
-            p={4}
-            bg={theme.colors.white}
-            borderRadius="md"
-            boxShadow="sm"
-          >
-            <ChatUI />
-          </Box>
+        <Flex direction="column" height="100%">
+          {responseFromBE.explanation_cards && responseFromBE.explanation_cards.length > 0 && (
+            <Box p={4} bg={theme.colors.white} borderRadius="md" boxShadow="sm" mb={4}>
+              <h2>{responseFromBE.explanation_cards[currentCardIndex].title}</h2>
+              <p>{responseFromBE.explanation_cards[currentCardIndex].content}</p>
+              <Flex mt={4}>
+                <Button onClick={handlePrev} isDisabled={currentCardIndex === 0}>Previous</Button>
+                <Button onClick={handleNext} isDisabled={currentCardIndex === (responseFromBE.explanation_cards?.length ?? 0) - 1}>Next</Button>
+              </Flex>
+            </Box>
+          )}
+          <Divider orientation="horizontal" my={5} />
+          {responseFromBE.flame_graph && <CustomFlameGraph graphData={JSON.parse(responseFromBE.flame_graph)} />}
         </Flex>
       )}
     </Box>
@@ -152,3 +90,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
