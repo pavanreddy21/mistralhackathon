@@ -192,7 +192,7 @@ function Dashboard() {
                 </Flex>
               </Box>
             )}
-          <Divider orientation="vertical" mx={10} />
+          <Divider orientation="vertical" mx={2} />
           <Box
             p={4}
             bg={theme.colors.white}
