@@ -108,7 +108,7 @@ function Dashboard() {
                     <Heading noOfLines={1}>
                       {responseFromBE.explanation_cards[currentCardIndex].title}
                     </Heading>
-                    <Box p="4">
+                    <Box p="4" fontSize='medium' >
                       <Markdown
                         components={{
                           // Customize the root element to set the overall theme background and text color
@@ -234,7 +234,7 @@ function Dashboard() {
           >
             <ChatUI
               initialMessage={
-                responseFromBE?.explanation_cards?.[currentCardIndex]?.content
+                responseFromBE?.summary
               }
             />
           </Box>

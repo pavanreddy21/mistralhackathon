@@ -55,7 +55,7 @@ class AnalyzePerfScript(Resource):
         # with open('flamegraph.json', 'w') as f:
         #     json.dump(analysis_response.flame_graph, f)
 
-        return {"message": "File successfully analyzed", "explanation_cards": [card.dict() for card in cards.explanation_cards], "flame_graph": json.dumps(analysis_response.flame_graph)}
+        return {"message": "File successfully analyzed", "explanation_cards": [card.dict() for card in cards.explanation_cards], "flame_graph": json.dumps(analysis_response.flame_graph), "summary": top_consumers}
         
 
 api.add_resource(AnalyzePerfScript, '/analyze')

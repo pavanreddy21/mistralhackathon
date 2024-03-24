@@ -16,7 +16,10 @@ type Chat = {
 const apiKey = "TWfVrlX659GSTS9hcsgUcPZ8uNzfoQsg"; // Ensure you have MISTRAL_API_KEY in your .env file
 const client = new MistralClient(apiKey);
 
-const PROMPT_TO_APPEND = ``;
+// system prompt for gpt
+const PROMPT_TO_APPEND = 'You are an expert senior systems engineer, \
+You are trying to help a user understand the flamegraphs and kernel system calls. \
+Help them walkthrough call stacks and hidden bottlenecks in the flamegraphs.'
 
 const ChatUI = ({ initialMessage }) => {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -47,7 +50,7 @@ const ChatUI = ({ initialMessage }) => {
       conversationHistory.push({ role: "user", content: value });
 
       const chatResponse = await client.chat({
-        model: "mistral-large-latest",
+        model: "mistral-small-latest",
         messages: conversationHistory,
       });
       if (chatResponse && chatResponse.choices.length > 0) {
