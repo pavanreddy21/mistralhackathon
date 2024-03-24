@@ -11,18 +11,28 @@ type Chat = {
   user: "me" | "agent";
   message: string;
   originalIndex: number;
+  hideThisMessage?: boolean;
 };
 
 const apiKey = "TWfVrlX659GSTS9hcsgUcPZ8uNzfoQsg"; // Ensure you have MISTRAL_API_KEY in your .env file
 const client = new MistralClient(apiKey);
 
 // system prompt for gpt
-const PROMPT_TO_APPEND = 'You are an expert senior systems engineer, \
+const PROMPT_TO_APPEND =
+  "You are an expert senior systems engineer, \
 You are trying to help a user understand the flamegraphs and kernel system calls. \
-Help them walkthrough call stacks and hidden bottlenecks in the flamegraphs.'
+Help them walkthrough call stacks and hidden bottlenecks in the flamegraphs.";
 
-const ChatUI = ({ initialMessage }) => {
-  const [chats, setChats] = useState<Chat[]>([]);
+const ChatUI = ({ agentMessage, initialMessage }) => {
+  const [chats, setChats] = useState<Chat[]>([
+    { user: "agent", message: agentMessage, originalIndex: 0 },
+    {
+      user: "agent",
+      message: PROMPT_TO_APPEND + initialMessage,
+      originalIndex: 1,
+      hideThisMessage: initialMessage,
+    },
+  ]);
   const [value, setValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   // const [initialMessageSent, setInitialMessageSent] = useState(false);
@@ -49,6 +59,8 @@ const ChatUI = ({ initialMessage }) => {
       // Include the new message by the user at the end of the conversation history
       conversationHistory.push({ role: "user", content: value });
 
+      console.log("conversationHistory", conversationHistory);
+
       const chatResponse = await client.chat({
         model: "mistral-small-latest",
         messages: conversationHistory,
@@ -72,20 +84,20 @@ const ChatUI = ({ initialMessage }) => {
     }
   };
 
-  useEffect(() => {
-    console.log("rendering twise");
-    // if (initialMessageSent) return;
-    // setInitialMessageSent(true);
-    if (sentMessageRef.current) return;
-    sentMessageRef.current = true;
-    const messageToSend = PROMPT_TO_APPEND + initialMessage;
-    setChats((prev) => [
-      { user: "me", message: messageToSend, originalIndex: prev.length },
-      ...prev,
-    ]);
-    setValue(messageToSend);
-    handleSubmit(null);
-  }, [initialMessage]);
+  // useEffect(() => {
+  //   console.log("rendering twise");
+  //   // if (initialMessageSent) return;
+  //   // setInitialMessageSent(true);
+  //   if (sentMessageRef.current) return;
+  //   sentMessageRef.current = true;
+  //   const messageToSend = PROMPT_TO_APPEND + initialMessage;
+  //   setChats((prev) => [
+  //     { user: "me", message: messageToSend, originalIndex: prev.length },
+  //     ...prev,
+  //   ]);
+  //   setValue(messageToSend);
+  //   handleSubmit(null);
+  // }, [initialMessage]);
 
   console.log("chats", chats);
   return (
@@ -123,7 +135,7 @@ const ChatUI = ({ initialMessage }) => {
           )}
           <AnimatePresence>
             {chats.map((chat, index) => {
-              if (chat.originalIndex === 0 && chat.user === "me") {
+              if (chat.hideThisMessage) {
                 return null;
               }
               return (
